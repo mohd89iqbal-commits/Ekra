@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">BiteLocal</string>
+    <string name="sign_in_title">BiteLocal</string>
+    <string name="sign_in_headline">Neighborhood kitchens, delivered warm.</string>
+    <string name="sign_in_subtitle">Discover top local restaurants, track every dish from wok to doorstep in real time, and pay with encrypted tokenization.</string>
+    <string name="sign_in_google_cta">Sign in with Google</string>
+    <string name="explore_search_hint">Search biryani, pizza, ramen, or kitchens</string>
+    <string name="checkout_security_badge">256-bit TLS Encrypted • Tokenized Payment Vault</string>
+    <string name="orders_empty_title">No orders placed yet</string>
+    <string name="orders_empty_subtitle">Pick a local kitchen from Explore to track your first live delivery.</string>
+</resources>

@@ -1,0 +1,6 @@
+{
+  "name": "BiteLocal",
+  "description": "Local restaurant discovery, food ordering, real-time order tracking, and secure checkout app.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,195 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidAddress(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.label is string && data.label.size() >= 1 && data.label.size() <= 30 &&
+             data.street is string && data.street.size() >= 3 && data.street.size() <= 120 &&
+             (!('apartment' in data) || (data.apartment is string && data.apartment.size() <= 60)) &&
+             data.city is string && data.city.size() >= 2 && data.city.size() <= 60 &&
+             (!('instructions' in data) || (data.instructions is string && data.instructions.size() <= 160)) &&
+             data.defaultAddress is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPaymentMethod(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.methodType in ['CARD', 'UPI', 'WALLET'] &&
+             data.brand is string && data.brand.size() >= 2 && data.brand.size() <= 30 &&
+             data.last4OrHandle is string && data.last4OrHandle.size() >= 4 && data.last4OrHandle.size() <= 50 &&
+             data.holderName is string && data.holderName.size() >= 2 && data.holderName.size() <= 60 &&
+             (!('expiryMonth' in data) || (data.expiryMonth is int && data.expiryMonth >= 1 && data.expiryMonth <= 12)) &&
+             (!('expiryYear' in data) || (data.expiryYear is int && data.expiryYear >= 2025 && data.expiryYear <= 2045)) &&
+             data.defaultMethod is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidFavorite(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.restaurantId is string && data.restaurantId.size() >= 1 && data.restaurantId.size() <= 64 &&
+             data.restaurantName is string && data.restaurantName.size() >= 1 && data.restaurantName.size() <= 80 &&
+             data.cuisine is string && data.cuisine.size() >= 1 && data.cuisine.size() <= 60 &&
+             data.rating is number && data.rating >= 0.0 && data.rating <= 5.0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidOrder(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.restaurantId is string && data.restaurantId.size() >= 1 && data.restaurantId.size() <= 64 &&
+             data.restaurantName is string && data.restaurantName.size() >= 1 && data.restaurantName.size() <= 80 &&
+             data.restaurantCuisine is string && data.restaurantCuisine.size() >= 1 && data.restaurantCuisine.size() <= 60 &&
+             data.items is list && data.items.size() >= 1 && data.items.size() <= 30 && data.items[0] is map &&
+             data.deliveryAddressLabel is string && data.deliveryAddressLabel.size() >= 1 && data.deliveryAddressLabel.size() <= 40 &&
+             data.deliveryAddressLine is string && data.deliveryAddressLine.size() >= 3 && data.deliveryAddressLine.size() <= 200 &&
+             (!('deliveryInstructions' in data) || (data.deliveryInstructions is string && data.deliveryInstructions.size() <= 160)) &&
+             data.paymentMethodSummary is string && data.paymentMethodSummary.size() >= 3 && data.paymentMethodSummary.size() <= 80 &&
+             data.paymentStatus in ['PAID', 'REFUNDED'] &&
+             data.transactionRef is string && data.transactionRef.size() >= 5 && data.transactionRef.size() <= 64 &&
+             (!('promoCode' in data) || (data.promoCode is string && data.promoCode.size() <= 24)) &&
+             data.subtotalCents is int && data.subtotalCents >= 0 && data.subtotalCents <= 10000000 &&
+             data.deliveryFeeCents is int && data.deliveryFeeCents >= 0 && data.deliveryFeeCents <= 100000 &&
+             data.taxCents is int && data.taxCents >= 0 && data.taxCents <= 2000000 &&
+             data.discountCents is int && data.discountCents >= 0 && data.discountCents <= 5000000 &&
+             data.totalCents is int && data.totalCents >= 1 && data.totalCents <= 15000000 &&
+             data.status in ['PLACED', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'] &&
+             data.etaMinutes is int && data.etaMinutes >= 0 && data.etaMinutes <= 180 &&
+             data.courierName is string && data.courierName.size() >= 2 && data.courierName.size() <= 60 &&
+             data.courierRating is number && data.courierRating >= 1.0 && data.courierRating <= 5.0 &&
+             data.courierVehicle is string && data.courierVehicle.size() >= 2 && data.courierVehicle.size() <= 60 &&
+             (!('userRating' in data) || (data.userRating is int && data.userRating >= 1 && data.userRating <= 5)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/addresses/{addressId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(addressId);
+      allow create: if isOwner(userId) &&
+                       isValidId(addressId) &&
+                       incoming().keys().hasAll(['userId', 'label', 'street', 'city', 'defaultAddress', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'label', 'street', 'apartment', 'city', 'instructions', 'defaultAddress', 'createdAt', 'updatedAt']) &&
+                       isValidAddress(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(addressId) &&
+                       isValidAddress(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['label', 'street', 'apartment', 'city', 'instructions', 'defaultAddress', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(addressId);
+    }
+
+    match /users/{userId}/payment_methods/{methodId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(methodId);
+      allow create: if isOwner(userId) &&
+                       isValidId(methodId) &&
+                       incoming().keys().hasAll(['userId', 'methodType', 'brand', 'last4OrHandle', 'holderName', 'defaultMethod', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'methodType', 'brand', 'last4OrHandle', 'holderName', 'expiryMonth', 'expiryYear', 'defaultMethod', 'createdAt', 'updatedAt']) &&
+                       isValidPaymentMethod(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(methodId) &&
+                       isValidPaymentMethod(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['defaultMethod', 'holderName', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(methodId);
+    }
+
+    match /users/{userId}/favorites/{restaurantId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(restaurantId);
+      allow create: if isOwner(userId) &&
+                       isValidId(restaurantId) &&
+                       incoming().restaurantId == restaurantId &&
+                       incoming().keys().hasAll(['userId', 'restaurantId', 'restaurantName', 'cuisine', 'rating', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'restaurantId', 'restaurantName', 'cuisine', 'rating', 'createdAt']) &&
+                       isValidFavorite(incoming());
+      allow update: if false;
+      allow delete: if isOwner(userId) && isValidId(restaurantId);
+    }
+
+    match /users/{userId}/orders/{orderId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(orderId);
+      allow create: if isOwner(userId) &&
+                       isValidId(orderId) &&
+                       incoming().status == 'PLACED' &&
+                       incoming().paymentStatus == 'PAID' &&
+                       !('userRating' in incoming()) &&
+                       incoming().keys().hasAll([
+                         'userId', 'restaurantId', 'restaurantName', 'restaurantCuisine', 'items',
+                         'deliveryAddressLabel', 'deliveryAddressLine', 'paymentMethodSummary',
+                         'paymentStatus', 'transactionRef', 'subtotalCents', 'deliveryFeeCents',
+                         'taxCents', 'discountCents', 'totalCents', 'status', 'etaMinutes',
+                         'courierName', 'courierRating', 'courierVehicle', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'restaurantId', 'restaurantName', 'restaurantCuisine', 'items',
+                         'deliveryAddressLabel', 'deliveryAddressLine', 'deliveryInstructions',
+                         'paymentMethodSummary', 'paymentStatus', 'transactionRef', 'promoCode',
+                         'subtotalCents', 'deliveryFeeCents', 'taxCents', 'discountCents',
+                         'totalCents', 'status', 'etaMinutes', 'courierName', 'courierRating',
+                         'courierVehicle', 'userRating', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidOrder(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(orderId) &&
+                       isValidOrder(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().restaurantId == existing().restaurantId &&
+                       incoming().totalCents == existing().totalCents &&
+                       incoming().transactionRef == existing().transactionRef &&
+                       (
+                         (
+                           (
+                             (existing().status == 'PLACED' && incoming().status == 'CONFIRMED') ||
+                             (existing().status == 'CONFIRMED' && incoming().status == 'PREPARING') ||
+                             (existing().status == 'PREPARING' && incoming().status == 'OUT_FOR_DELIVERY') ||
+                             (existing().status == 'OUT_FOR_DELIVERY' && incoming().status == 'DELIVERED')
+                           ) &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'etaMinutes', 'updatedAt'])
+                         ) ||
+                         (
+                           existing().status in ['PLACED', 'CONFIRMED'] &&
+                           incoming().status == 'CANCELLED' &&
+                           incoming().paymentStatus == 'REFUNDED' &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'paymentStatus', 'etaMinutes', 'updatedAt'])
+                         ) ||
+                         (
+                           existing().status == 'DELIVERED' &&
+                           !('userRating' in existing()) &&
+                           ('userRating' in incoming()) &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['userRating', 'updatedAt'])
+                         )
+                       );
+      allow delete: if false;
+    }
+  }
+}

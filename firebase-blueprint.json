@@ -1,0 +1,130 @@
+{
+  "entities": {
+    "Address": {
+      "title": "Delivery Address",
+      "description": "User saved street address and delivery notes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "label": { "type": "string" },
+        "street": { "type": "string" },
+        "apartment": { "type": "string" },
+        "city": { "type": "string" },
+        "instructions": { "type": "string" },
+        "defaultAddress": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "label", "street", "city", "defaultAddress", "createdAt", "updatedAt"]
+    },
+    "PaymentMethod": {
+      "title": "Tokenized Payment Method",
+      "description": "Masked payment instrument metadata stored without raw card numbers or CVV.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "methodType": { "type": "string", "enum": ["CARD", "UPI", "WALLET"] },
+        "brand": { "type": "string" },
+        "last4OrHandle": { "type": "string" },
+        "holderName": { "type": "string" },
+        "expiryMonth": { "type": "integer" },
+        "expiryYear": { "type": "integer" },
+        "defaultMethod": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "methodType", "brand", "last4OrHandle", "holderName", "defaultMethod", "createdAt", "updatedAt"]
+    },
+    "FavoriteRestaurant": {
+      "title": "Favorite Restaurant",
+      "description": "User bookmarked local restaurant.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "restaurantName": { "type": "string" },
+        "cuisine": { "type": "string" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "restaurantId", "restaurantName", "cuisine", "rating", "createdAt"]
+    },
+    "Order": {
+      "title": "Food Order",
+      "description": "Paid restaurant order with real-time kitchen and courier tracking status.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "restaurantName": { "type": "string" },
+        "restaurantCuisine": { "type": "string" },
+        "items": { "type": "array" },
+        "deliveryAddressLabel": { "type": "string" },
+        "deliveryAddressLine": { "type": "string" },
+        "deliveryInstructions": { "type": "string" },
+        "paymentMethodSummary": { "type": "string" },
+        "paymentStatus": { "type": "string", "enum": ["PAID", "REFUNDED"] },
+        "transactionRef": { "type": "string" },
+        "promoCode": { "type": "string" },
+        "subtotalCents": { "type": "integer" },
+        "deliveryFeeCents": { "type": "integer" },
+        "taxCents": { "type": "integer" },
+        "discountCents": { "type": "integer" },
+        "totalCents": { "type": "integer" },
+        "status": {
+          "type": "string",
+          "enum": ["PLACED", "CONFIRMED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"]
+        },
+        "etaMinutes": { "type": "integer" },
+        "courierName": { "type": "string" },
+        "courierRating": { "type": "number" },
+        "courierVehicle": { "type": "string" },
+        "userRating": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "restaurantId",
+        "restaurantName",
+        "restaurantCuisine",
+        "items",
+        "deliveryAddressLabel",
+        "deliveryAddressLine",
+        "paymentMethodSummary",
+        "paymentStatus",
+        "transactionRef",
+        "subtotalCents",
+        "deliveryFeeCents",
+        "taxCents",
+        "discountCents",
+        "totalCents",
+        "status",
+        "etaMinutes",
+        "courierName",
+        "courierRating",
+        "courierVehicle",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/addresses/{addressId}": {
+      "schema": { "$ref": "#/entities/Address" },
+      "description": "User's saved delivery addresses."
+    },
+    "/users/{userId}/payment_methods/{methodId}": {
+      "schema": { "$ref": "#/entities/PaymentMethod" },
+      "description": "User's saved tokenized payment methods."
+    },
+    "/users/{userId}/favorites/{restaurantId}": {
+      "schema": { "$ref": "#/entities/FavoriteRestaurant" },
+      "description": "User's favorite restaurants."
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "User's food orders with real-time tracking state."
+    }
+  }
+}
